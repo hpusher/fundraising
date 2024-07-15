@@ -16,17 +16,35 @@ import * as errors from "../../errors";
 import { Request } from "express";
 import { plainToClass } from "class-transformer";
 import { ApiNestedQuery } from "../../decorators/api-nested-query.decorator";
+import * as nestAccessControl from "nest-access-control";
+import * as defaultAuthGuard from "../../auth/defaultAuth.guard";
 import { ContactUsService } from "../contactUs.service";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
 import { ContactUsCreateInput } from "./ContactUsCreateInput";
 import { ContactUs } from "./ContactUs";
 import { ContactUsFindManyArgs } from "./ContactUsFindManyArgs";
 import { ContactUsWhereUniqueInput } from "./ContactUsWhereUniqueInput";
 import { ContactUsUpdateInput } from "./ContactUsUpdateInput";
 
+@swagger.ApiBearerAuth()
+@common.UseGuards(defaultAuthGuard.DefaultAuthGuard, nestAccessControl.ACGuard)
 export class ContactUsControllerBase {
-  constructor(protected readonly service: ContactUsService) {}
+  constructor(
+    protected readonly service: ContactUsService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Post()
   @swagger.ApiCreatedResponse({ type: ContactUs })
+  @nestAccessControl.UseRoles({
+    resource: "ContactUs",
+    action: "create",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async createContactUs(
     @common.Body() data: ContactUsCreateInput
   ): Promise<ContactUs> {
@@ -40,9 +58,18 @@ export class ContactUsControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get()
   @swagger.ApiOkResponse({ type: [ContactUs] })
   @ApiNestedQuery(ContactUsFindManyArgs)
+  @nestAccessControl.UseRoles({
+    resource: "ContactUs",
+    action: "read",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async contactuses(@common.Req() request: Request): Promise<ContactUs[]> {
     const args = plainToClass(ContactUsFindManyArgs, request.query);
     return this.service.contactuses({
@@ -55,9 +82,18 @@ export class ContactUsControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get("/:id")
   @swagger.ApiOkResponse({ type: ContactUs })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "ContactUs",
+    action: "read",
+    possession: "own",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async contactUs(
     @common.Param() params: ContactUsWhereUniqueInput
   ): Promise<ContactUs | null> {
@@ -77,9 +113,18 @@ export class ContactUsControllerBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Patch("/:id")
   @swagger.ApiOkResponse({ type: ContactUs })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "ContactUs",
+    action: "update",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async updateContactUs(
     @common.Param() params: ContactUsWhereUniqueInput,
     @common.Body() data: ContactUsUpdateInput
@@ -107,6 +152,14 @@ export class ContactUsControllerBase {
   @common.Delete("/:id")
   @swagger.ApiOkResponse({ type: ContactUs })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "ContactUs",
+    action: "delete",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async deleteContactUs(
     @common.Param() params: ContactUsWhereUniqueInput
   ): Promise<ContactUs | null> {

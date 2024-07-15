@@ -16,17 +16,35 @@ import * as errors from "../../errors";
 import { Request } from "express";
 import { plainToClass } from "class-transformer";
 import { ApiNestedQuery } from "../../decorators/api-nested-query.decorator";
+import * as nestAccessControl from "nest-access-control";
+import * as defaultAuthGuard from "../../auth/defaultAuth.guard";
 import { CustomerServiceService } from "../customerService.service";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
 import { CustomerServiceCreateInput } from "./CustomerServiceCreateInput";
 import { CustomerService } from "./CustomerService";
 import { CustomerServiceFindManyArgs } from "./CustomerServiceFindManyArgs";
 import { CustomerServiceWhereUniqueInput } from "./CustomerServiceWhereUniqueInput";
 import { CustomerServiceUpdateInput } from "./CustomerServiceUpdateInput";
 
+@swagger.ApiBearerAuth()
+@common.UseGuards(defaultAuthGuard.DefaultAuthGuard, nestAccessControl.ACGuard)
 export class CustomerServiceControllerBase {
-  constructor(protected readonly service: CustomerServiceService) {}
+  constructor(
+    protected readonly service: CustomerServiceService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Post()
   @swagger.ApiCreatedResponse({ type: CustomerService })
+  @nestAccessControl.UseRoles({
+    resource: "CustomerService",
+    action: "create",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async createCustomerService(
     @common.Body() data: CustomerServiceCreateInput
   ): Promise<CustomerService> {
@@ -40,9 +58,18 @@ export class CustomerServiceControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get()
   @swagger.ApiOkResponse({ type: [CustomerService] })
   @ApiNestedQuery(CustomerServiceFindManyArgs)
+  @nestAccessControl.UseRoles({
+    resource: "CustomerService",
+    action: "read",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async customerServices(
     @common.Req() request: Request
   ): Promise<CustomerService[]> {
@@ -57,9 +84,18 @@ export class CustomerServiceControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get("/:id")
   @swagger.ApiOkResponse({ type: CustomerService })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "CustomerService",
+    action: "read",
+    possession: "own",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async customerService(
     @common.Param() params: CustomerServiceWhereUniqueInput
   ): Promise<CustomerService | null> {
@@ -79,9 +115,18 @@ export class CustomerServiceControllerBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Patch("/:id")
   @swagger.ApiOkResponse({ type: CustomerService })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "CustomerService",
+    action: "update",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async updateCustomerService(
     @common.Param() params: CustomerServiceWhereUniqueInput,
     @common.Body() data: CustomerServiceUpdateInput
@@ -109,6 +154,14 @@ export class CustomerServiceControllerBase {
   @common.Delete("/:id")
   @swagger.ApiOkResponse({ type: CustomerService })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "CustomerService",
+    action: "delete",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async deleteCustomerService(
     @common.Param() params: CustomerServiceWhereUniqueInput
   ): Promise<CustomerService | null> {

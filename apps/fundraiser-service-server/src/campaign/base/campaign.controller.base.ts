@@ -16,17 +16,35 @@ import * as errors from "../../errors";
 import { Request } from "express";
 import { plainToClass } from "class-transformer";
 import { ApiNestedQuery } from "../../decorators/api-nested-query.decorator";
+import * as nestAccessControl from "nest-access-control";
+import * as defaultAuthGuard from "../../auth/defaultAuth.guard";
 import { CampaignService } from "../campaign.service";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
 import { CampaignCreateInput } from "./CampaignCreateInput";
 import { Campaign } from "./Campaign";
 import { CampaignFindManyArgs } from "./CampaignFindManyArgs";
 import { CampaignWhereUniqueInput } from "./CampaignWhereUniqueInput";
 import { CampaignUpdateInput } from "./CampaignUpdateInput";
 
+@swagger.ApiBearerAuth()
+@common.UseGuards(defaultAuthGuard.DefaultAuthGuard, nestAccessControl.ACGuard)
 export class CampaignControllerBase {
-  constructor(protected readonly service: CampaignService) {}
+  constructor(
+    protected readonly service: CampaignService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Post()
   @swagger.ApiCreatedResponse({ type: Campaign })
+  @nestAccessControl.UseRoles({
+    resource: "Campaign",
+    action: "create",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async createCampaign(
     @common.Body() data: CampaignCreateInput
   ): Promise<Campaign> {
@@ -40,9 +58,18 @@ export class CampaignControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get()
   @swagger.ApiOkResponse({ type: [Campaign] })
   @ApiNestedQuery(CampaignFindManyArgs)
+  @nestAccessControl.UseRoles({
+    resource: "Campaign",
+    action: "read",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async campaigns(@common.Req() request: Request): Promise<Campaign[]> {
     const args = plainToClass(CampaignFindManyArgs, request.query);
     return this.service.campaigns({
@@ -55,9 +82,18 @@ export class CampaignControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get("/:id")
   @swagger.ApiOkResponse({ type: Campaign })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Campaign",
+    action: "read",
+    possession: "own",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async campaign(
     @common.Param() params: CampaignWhereUniqueInput
   ): Promise<Campaign | null> {
@@ -77,9 +113,18 @@ export class CampaignControllerBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Patch("/:id")
   @swagger.ApiOkResponse({ type: Campaign })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Campaign",
+    action: "update",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async updateCampaign(
     @common.Param() params: CampaignWhereUniqueInput,
     @common.Body() data: CampaignUpdateInput
@@ -107,6 +152,14 @@ export class CampaignControllerBase {
   @common.Delete("/:id")
   @swagger.ApiOkResponse({ type: Campaign })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Campaign",
+    action: "delete",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async deleteCampaign(
     @common.Param() params: CampaignWhereUniqueInput
   ): Promise<Campaign | null> {

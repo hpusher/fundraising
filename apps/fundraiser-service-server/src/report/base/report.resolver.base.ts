@@ -13,16 +13,31 @@ import * as graphql from "@nestjs/graphql";
 import { GraphQLError } from "graphql";
 import { isRecordNotFoundError } from "../../prisma.util";
 import { MetaQueryPayload } from "../../util/MetaQueryPayload";
+import * as nestAccessControl from "nest-access-control";
+import * as gqlACGuard from "../../auth/gqlAC.guard";
+import { GqlDefaultAuthGuard } from "../../auth/gqlDefaultAuth.guard";
+import * as common from "@nestjs/common";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
 import { Report } from "./Report";
 import { ReportCountArgs } from "./ReportCountArgs";
 import { ReportFindManyArgs } from "./ReportFindManyArgs";
 import { ReportFindUniqueArgs } from "./ReportFindUniqueArgs";
 import { DeleteReportArgs } from "./DeleteReportArgs";
 import { ReportService } from "../report.service";
+@common.UseGuards(GqlDefaultAuthGuard, gqlACGuard.GqlACGuard)
 @graphql.Resolver(() => Report)
 export class ReportResolverBase {
-  constructor(protected readonly service: ReportService) {}
+  constructor(
+    protected readonly service: ReportService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
 
+  @graphql.Query(() => MetaQueryPayload)
+  @nestAccessControl.UseRoles({
+    resource: "Report",
+    action: "read",
+    possession: "any",
+  })
   async _reportsMeta(
     @graphql.Args() args: ReportCountArgs
   ): Promise<MetaQueryPayload> {
@@ -32,12 +47,24 @@ export class ReportResolverBase {
     };
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => [Report])
+  @nestAccessControl.UseRoles({
+    resource: "Report",
+    action: "read",
+    possession: "any",
+  })
   async reports(@graphql.Args() args: ReportFindManyArgs): Promise<Report[]> {
     return this.service.reports(args);
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => Report, { nullable: true })
+  @nestAccessControl.UseRoles({
+    resource: "Report",
+    action: "read",
+    possession: "own",
+  })
   async report(
     @graphql.Args() args: ReportFindUniqueArgs
   ): Promise<Report | null> {
@@ -49,6 +76,11 @@ export class ReportResolverBase {
   }
 
   @graphql.Mutation(() => Report)
+  @nestAccessControl.UseRoles({
+    resource: "Report",
+    action: "delete",
+    possession: "any",
+  })
   async deleteReport(
     @graphql.Args() args: DeleteReportArgs
   ): Promise<Report | null> {

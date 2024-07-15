@@ -16,17 +16,35 @@ import * as errors from "../../errors";
 import { Request } from "express";
 import { plainToClass } from "class-transformer";
 import { ApiNestedQuery } from "../../decorators/api-nested-query.decorator";
+import * as nestAccessControl from "nest-access-control";
+import * as defaultAuthGuard from "../../auth/defaultAuth.guard";
 import { PaymentMethodService } from "../paymentMethod.service";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
 import { PaymentMethodCreateInput } from "./PaymentMethodCreateInput";
 import { PaymentMethod } from "./PaymentMethod";
 import { PaymentMethodFindManyArgs } from "./PaymentMethodFindManyArgs";
 import { PaymentMethodWhereUniqueInput } from "./PaymentMethodWhereUniqueInput";
 import { PaymentMethodUpdateInput } from "./PaymentMethodUpdateInput";
 
+@swagger.ApiBearerAuth()
+@common.UseGuards(defaultAuthGuard.DefaultAuthGuard, nestAccessControl.ACGuard)
 export class PaymentMethodControllerBase {
-  constructor(protected readonly service: PaymentMethodService) {}
+  constructor(
+    protected readonly service: PaymentMethodService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Post()
   @swagger.ApiCreatedResponse({ type: PaymentMethod })
+  @nestAccessControl.UseRoles({
+    resource: "PaymentMethod",
+    action: "create",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async createPaymentMethod(
     @common.Body() data: PaymentMethodCreateInput
   ): Promise<PaymentMethod> {
@@ -40,9 +58,18 @@ export class PaymentMethodControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get()
   @swagger.ApiOkResponse({ type: [PaymentMethod] })
   @ApiNestedQuery(PaymentMethodFindManyArgs)
+  @nestAccessControl.UseRoles({
+    resource: "PaymentMethod",
+    action: "read",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async paymentMethods(
     @common.Req() request: Request
   ): Promise<PaymentMethod[]> {
@@ -57,9 +84,18 @@ export class PaymentMethodControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get("/:id")
   @swagger.ApiOkResponse({ type: PaymentMethod })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "PaymentMethod",
+    action: "read",
+    possession: "own",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async paymentMethod(
     @common.Param() params: PaymentMethodWhereUniqueInput
   ): Promise<PaymentMethod | null> {
@@ -79,9 +115,18 @@ export class PaymentMethodControllerBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Patch("/:id")
   @swagger.ApiOkResponse({ type: PaymentMethod })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "PaymentMethod",
+    action: "update",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async updatePaymentMethod(
     @common.Param() params: PaymentMethodWhereUniqueInput,
     @common.Body() data: PaymentMethodUpdateInput
@@ -109,6 +154,14 @@ export class PaymentMethodControllerBase {
   @common.Delete("/:id")
   @swagger.ApiOkResponse({ type: PaymentMethod })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "PaymentMethod",
+    action: "delete",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async deletePaymentMethod(
     @common.Param() params: PaymentMethodWhereUniqueInput
   ): Promise<PaymentMethod | null> {

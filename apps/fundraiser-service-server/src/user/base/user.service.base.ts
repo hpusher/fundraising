@@ -11,11 +11,16 @@ https://docs.amplication.com/how-to/custom-code
   */
 import { PrismaService } from "../../prisma/prisma.service";
 import { Prisma, User as PrismaUser } from "@prisma/client";
+import { PasswordService } from "../../auth/password.service";
+import { transformStringFieldUpdateInput } from "../../prisma.util";
 import { UserCreateInput } from "./UserCreateInput";
 import { User } from "./User";
 
 export class UserServiceBase {
-  constructor(protected readonly prisma: PrismaService) {}
+  constructor(
+    protected readonly prisma: PrismaService,
+    protected readonly passwordService: PasswordService
+  ) {}
 
   async count(args: Omit<Prisma.UserCountArgs, "select">): Promise<number> {
     return this.prisma.user.count(args);
@@ -28,10 +33,30 @@ export class UserServiceBase {
     return this.prisma.user.findUnique(args);
   }
   async createUser(args: Prisma.UserCreateArgs): Promise<PrismaUser> {
-    return this.prisma.user.create(args);
+    return this.prisma.user.create({
+      ...args,
+
+      data: {
+        ...args.data,
+        password: await this.passwordService.hash(args.data.password),
+      },
+    });
   }
   async updateUser(args: Prisma.UserUpdateArgs): Promise<PrismaUser> {
-    return this.prisma.user.update(args);
+    return this.prisma.user.update({
+      ...args,
+
+      data: {
+        ...args.data,
+
+        password:
+          args.data.password &&
+          (await transformStringFieldUpdateInput(
+            args.data.password,
+            (password) => this.passwordService.hash(password)
+          )),
+      },
+    });
   }
   async deleteUser(args: Prisma.UserDeleteArgs): Promise<PrismaUser> {
     return this.prisma.user.delete(args);

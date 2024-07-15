@@ -13,16 +13,31 @@ import * as graphql from "@nestjs/graphql";
 import { GraphQLError } from "graphql";
 import { isRecordNotFoundError } from "../../prisma.util";
 import { MetaQueryPayload } from "../../util/MetaQueryPayload";
+import * as nestAccessControl from "nest-access-control";
+import * as gqlACGuard from "../../auth/gqlAC.guard";
+import { GqlDefaultAuthGuard } from "../../auth/gqlDefaultAuth.guard";
+import * as common from "@nestjs/common";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
 import { Donation } from "./Donation";
 import { DonationCountArgs } from "./DonationCountArgs";
 import { DonationFindManyArgs } from "./DonationFindManyArgs";
 import { DonationFindUniqueArgs } from "./DonationFindUniqueArgs";
 import { DeleteDonationArgs } from "./DeleteDonationArgs";
 import { DonationService } from "../donation.service";
+@common.UseGuards(GqlDefaultAuthGuard, gqlACGuard.GqlACGuard)
 @graphql.Resolver(() => Donation)
 export class DonationResolverBase {
-  constructor(protected readonly service: DonationService) {}
+  constructor(
+    protected readonly service: DonationService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
 
+  @graphql.Query(() => MetaQueryPayload)
+  @nestAccessControl.UseRoles({
+    resource: "Donation",
+    action: "read",
+    possession: "any",
+  })
   async _donationsMeta(
     @graphql.Args() args: DonationCountArgs
   ): Promise<MetaQueryPayload> {
@@ -32,14 +47,26 @@ export class DonationResolverBase {
     };
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => [Donation])
+  @nestAccessControl.UseRoles({
+    resource: "Donation",
+    action: "read",
+    possession: "any",
+  })
   async donations(
     @graphql.Args() args: DonationFindManyArgs
   ): Promise<Donation[]> {
     return this.service.donations(args);
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => Donation, { nullable: true })
+  @nestAccessControl.UseRoles({
+    resource: "Donation",
+    action: "read",
+    possession: "own",
+  })
   async donation(
     @graphql.Args() args: DonationFindUniqueArgs
   ): Promise<Donation | null> {
@@ -51,6 +78,11 @@ export class DonationResolverBase {
   }
 
   @graphql.Mutation(() => Donation)
+  @nestAccessControl.UseRoles({
+    resource: "Donation",
+    action: "delete",
+    possession: "any",
+  })
   async deleteDonation(
     @graphql.Args() args: DeleteDonationArgs
   ): Promise<Donation | null> {

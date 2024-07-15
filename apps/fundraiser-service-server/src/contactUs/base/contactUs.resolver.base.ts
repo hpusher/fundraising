@@ -13,16 +13,31 @@ import * as graphql from "@nestjs/graphql";
 import { GraphQLError } from "graphql";
 import { isRecordNotFoundError } from "../../prisma.util";
 import { MetaQueryPayload } from "../../util/MetaQueryPayload";
+import * as nestAccessControl from "nest-access-control";
+import * as gqlACGuard from "../../auth/gqlAC.guard";
+import { GqlDefaultAuthGuard } from "../../auth/gqlDefaultAuth.guard";
+import * as common from "@nestjs/common";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
 import { ContactUs } from "./ContactUs";
 import { ContactUsCountArgs } from "./ContactUsCountArgs";
 import { ContactUsFindManyArgs } from "./ContactUsFindManyArgs";
 import { ContactUsFindUniqueArgs } from "./ContactUsFindUniqueArgs";
 import { DeleteContactUsArgs } from "./DeleteContactUsArgs";
 import { ContactUsService } from "../contactUs.service";
+@common.UseGuards(GqlDefaultAuthGuard, gqlACGuard.GqlACGuard)
 @graphql.Resolver(() => ContactUs)
 export class ContactUsResolverBase {
-  constructor(protected readonly service: ContactUsService) {}
+  constructor(
+    protected readonly service: ContactUsService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
 
+  @graphql.Query(() => MetaQueryPayload)
+  @nestAccessControl.UseRoles({
+    resource: "ContactUs",
+    action: "read",
+    possession: "any",
+  })
   async _contactusesMeta(
     @graphql.Args() args: ContactUsCountArgs
   ): Promise<MetaQueryPayload> {
@@ -32,14 +47,26 @@ export class ContactUsResolverBase {
     };
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => [ContactUs])
+  @nestAccessControl.UseRoles({
+    resource: "ContactUs",
+    action: "read",
+    possession: "any",
+  })
   async contactuses(
     @graphql.Args() args: ContactUsFindManyArgs
   ): Promise<ContactUs[]> {
     return this.service.contactuses(args);
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => ContactUs, { nullable: true })
+  @nestAccessControl.UseRoles({
+    resource: "ContactUs",
+    action: "read",
+    possession: "own",
+  })
   async contactUs(
     @graphql.Args() args: ContactUsFindUniqueArgs
   ): Promise<ContactUs | null> {
@@ -51,6 +78,11 @@ export class ContactUsResolverBase {
   }
 
   @graphql.Mutation(() => ContactUs)
+  @nestAccessControl.UseRoles({
+    resource: "ContactUs",
+    action: "delete",
+    possession: "any",
+  })
   async deleteContactUs(
     @graphql.Args() args: DeleteContactUsArgs
   ): Promise<ContactUs | null> {

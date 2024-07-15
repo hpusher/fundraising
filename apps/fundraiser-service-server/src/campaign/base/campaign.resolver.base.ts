@@ -13,6 +13,11 @@ import * as graphql from "@nestjs/graphql";
 import { GraphQLError } from "graphql";
 import { isRecordNotFoundError } from "../../prisma.util";
 import { MetaQueryPayload } from "../../util/MetaQueryPayload";
+import * as nestAccessControl from "nest-access-control";
+import * as gqlACGuard from "../../auth/gqlAC.guard";
+import { GqlDefaultAuthGuard } from "../../auth/gqlDefaultAuth.guard";
+import * as common from "@nestjs/common";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
 import { Campaign } from "./Campaign";
 import { CampaignCountArgs } from "./CampaignCountArgs";
 import { CampaignFindManyArgs } from "./CampaignFindManyArgs";
@@ -21,10 +26,20 @@ import { DeleteCampaignArgs } from "./DeleteCampaignArgs";
 import { CampaignCreateInput } from "./CampaignCreateInput";
 import { CampaignUpdateInput } from "./CampaignUpdateInput";
 import { CampaignService } from "../campaign.service";
+@common.UseGuards(GqlDefaultAuthGuard, gqlACGuard.GqlACGuard)
 @graphql.Resolver(() => Campaign)
 export class CampaignResolverBase {
-  constructor(protected readonly service: CampaignService) {}
+  constructor(
+    protected readonly service: CampaignService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
 
+  @graphql.Query(() => MetaQueryPayload)
+  @nestAccessControl.UseRoles({
+    resource: "Campaign",
+    action: "read",
+    possession: "any",
+  })
   async _campaignsMeta(
     @graphql.Args() args: CampaignCountArgs
   ): Promise<MetaQueryPayload> {
@@ -34,14 +49,26 @@ export class CampaignResolverBase {
     };
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => [Campaign])
+  @nestAccessControl.UseRoles({
+    resource: "Campaign",
+    action: "read",
+    possession: "any",
+  })
   async campaigns(
     @graphql.Args() args: CampaignFindManyArgs
   ): Promise<Campaign[]> {
     return this.service.campaigns(args);
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => Campaign, { nullable: true })
+  @nestAccessControl.UseRoles({
+    resource: "Campaign",
+    action: "read",
+    possession: "own",
+  })
   async campaign(
     @graphql.Args() args: CampaignFindUniqueArgs
   ): Promise<Campaign | null> {
@@ -53,6 +80,11 @@ export class CampaignResolverBase {
   }
 
   @graphql.Mutation(() => Campaign)
+  @nestAccessControl.UseRoles({
+    resource: "Campaign",
+    action: "delete",
+    possession: "any",
+  })
   async deleteCampaign(
     @graphql.Args() args: DeleteCampaignArgs
   ): Promise<Campaign | null> {
