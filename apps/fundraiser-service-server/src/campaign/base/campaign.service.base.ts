@@ -11,6 +11,9 @@ https://docs.amplication.com/how-to/custom-code
   */
 import { PrismaService } from "../../prisma/prisma.service";
 import { Prisma, Campaign as PrismaCampaign } from "@prisma/client";
+import { CampaignCreateInput } from "./CampaignCreateInput";
+import { Campaign } from "./Campaign";
+import { CampaignUpdateInput } from "./CampaignUpdateInput";
 
 export class CampaignServiceBase {
   constructor(protected readonly prisma: PrismaService) {}
@@ -43,5 +46,11 @@ export class CampaignServiceBase {
     args: Prisma.CampaignDeleteArgs
   ): Promise<PrismaCampaign> {
     return this.prisma.campaign.delete(args);
+  }
+  async CreateCampaign(args: CampaignCreateInput): Promise<Campaign> {
+    throw new Error("Not implemented");
+  }
+  async UpdateCampaign(args: CampaignUpdateInput): Promise<Campaign> {
+    throw new Error("Not implemented");
   }
 }

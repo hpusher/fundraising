@@ -128,4 +128,38 @@ export class CampaignControllerBase {
       throw error;
     }
   }
+
+  @common.Post("/campaigns")
+  @swagger.ApiOkResponse({
+    type: Campaign,
+  })
+  @swagger.ApiNotFoundResponse({
+    type: errors.NotFoundException,
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
+  async CreateCampaign(
+    @common.Body()
+    body: CampaignUpdateInput
+  ): Promise<Campaign> {
+    return this.service.CreateCampaign(body);
+  }
+
+  @common.Put("/campaigns/:id")
+  @swagger.ApiOkResponse({
+    type: Campaign,
+  })
+  @swagger.ApiNotFoundResponse({
+    type: errors.NotFoundException,
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
+  async UpdateCampaign(
+    @common.Body()
+    body: CampaignUpdateInput
+  ): Promise<Campaign> {
+    return this.service.UpdateCampaign(body);
+  }
 }

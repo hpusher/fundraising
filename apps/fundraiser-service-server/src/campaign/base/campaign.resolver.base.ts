@@ -18,6 +18,8 @@ import { CampaignCountArgs } from "./CampaignCountArgs";
 import { CampaignFindManyArgs } from "./CampaignFindManyArgs";
 import { CampaignFindUniqueArgs } from "./CampaignFindUniqueArgs";
 import { DeleteCampaignArgs } from "./DeleteCampaignArgs";
+import { CampaignCreateInput } from "./CampaignCreateInput";
+import { CampaignUpdateInput } from "./CampaignUpdateInput";
 import { CampaignService } from "../campaign.service";
 @graphql.Resolver(() => Campaign)
 export class CampaignResolverBase {
@@ -64,5 +66,21 @@ export class CampaignResolverBase {
       }
       throw error;
     }
+  }
+
+  @graphql.Mutation(() => Campaign)
+  async CreateCampaign(
+    @graphql.Args()
+    args: CampaignCreateInput
+  ): Promise<Campaign> {
+    return this.service.CreateCampaign(args);
+  }
+
+  @graphql.Mutation(() => Campaign)
+  async UpdateCampaign(
+    @graphql.Args()
+    args: CampaignUpdateInput
+  ): Promise<Campaign> {
+    return this.service.UpdateCampaign(args);
   }
 }

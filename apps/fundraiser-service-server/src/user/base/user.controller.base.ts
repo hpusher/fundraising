@@ -151,4 +151,21 @@ export class UserControllerBase {
       throw error;
     }
   }
+
+  @common.Put("/:id/profile")
+  @swagger.ApiOkResponse({
+    type: User,
+  })
+  @swagger.ApiNotFoundResponse({
+    type: errors.NotFoundException,
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
+  async UpdateUserProfile(
+    @common.Body()
+    body: UserCreateInput
+  ): Promise<User> {
+    return this.service.UpdateUserProfile(body);
+  }
 }
